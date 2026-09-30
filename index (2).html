@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#168aad">
+<title>PD Visual Alert</title>
+<style>
+:root{--bg:#eef8fa;--card:#fff;--tx:#17324d;--mu:#61798d;--pr:#168aad;--pl:#e6f5f7;--bd:#d8e7ec;--pt:#12677e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1c24;--card:#182a35;--tx:#e6f1f5;--mu:#9bb3c2;--pl:#1f3b48;--bd:#2b4453;--pt:#8fd3e6}}
+:root[data-theme="dark"]{--bg:#0f1c24;--card:#182a35;--tx:#e6f1f5;--mu:#9bb3c2;--pl:#1f3b48;--bd:#2b4453;--pt:#8fd3e6}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font-family:"Noto Sans Thai",Arial,sans-serif;background:var(--bg);color:var(--tx);min-height:100%}
+.app{max-width:480px;margin:auto;min-height:100vh;background:var(--card)}
+header{background:#168aad;color:#fff;padding:16px 20px;text-align:center}
+header h1{margin:0;font-size:22px}header p{margin:4px 0 0;font-size:13px;opacity:.95}
+.screen{display:none;padding:20px 18px 110px}.screen.active{display:block}
+h2{font-size:22px;margin:6px 0 10px}h3{margin:6px 0}
+.sub,.note{color:var(--mu);line-height:1.55}.note{font-size:13px}
+.grid{display:grid;gap:12px;margin-top:16px}
+button,.btn{border:0;border-radius:16px;padding:16px;font:700 17px inherit;font-family:inherit;cursor:pointer;width:100%;display:block;text-align:center;text-decoration:none}
+button:focus-visible,.btn:focus-visible,input:focus-visible{outline:3px solid #f6a800;outline-offset:2px}
+.primary{background:#168aad;color:#fff}.secondary{background:var(--pl);color:var(--pt)}.danger{background:#d62828;color:#fff}
+.card{border:1px solid var(--bd);border-radius:18px;padding:16px;margin:12px 0;background:var(--card)}
+.choice{display:flex;align-items:center;gap:12px;text-align:left;background:var(--pl);color:var(--tx);border:2px solid transparent;font-size:16px}
+.choice.sel{border-color:#168aad;background:var(--card);box-shadow:0 0 0 2px #168aad33}
+.choice .e{font-size:28px}.sw{width:34px;height:34px;border-radius:50%;border:2px solid #0003;flex:none}
+.photo{width:100%;aspect-ratio:4/3;border-radius:18px;object-fit:cover;display:none;margin-top:10px}
+input[type=file]{display:none}
+input[type=text],input[type=tel]{width:100%;padding:13px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:16px inherit;font-family:inherit;margin:4px 0 10px}
+label{font-size:14px;color:var(--mu)}
+.result{border-radius:20px;padding:20px;text-align:center;margin:14px 0}.result h2{margin:4px 0}
+.red{background:#d62828;color:#fff}.yellow{background:#f6c453;color:#503700}.green{background:#2a9d8f;color:#fff}
+.dot{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.dot.red{background:#d62828}.dot.yellow{background:#f6c453}.dot.green{background:#2a9d8f}
+.hi{display:flex;gap:12px;align-items:center}.hi img{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none}
+.hi .ph{width:64px;height:64px;border-radius:12px;background:var(--pl);display:grid;place-items:center;font-size:26px;flex:none}
+.x{width:auto;padding:6px 10px;font-size:13px;background:transparent;color:var(--mu);margin-left:auto}
+ul{padding-left:22px;line-height:1.8}
+footer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(480px,100%);background:var(--card);border-top:1px solid var(--bd);display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom,0px));z-index:10}
+footer button{padding:6px 2px;background:transparent;color:var(--mu);font-size:11.5px;font-weight:600}footer button.on{color:#168aad}
+footer i{font-style:normal;font-size:21px;display:block}
+</style>
+</head>
+<body>
+<div class="app">
+<header><h1>🩺 PD Visual Alert</h1><p>ช่วยเฝ้าระวังน้ำยาและอาการผิดปกติในผู้ป่วย PD</p></header>
+
+<section id="home" class="screen active">
+<div style="font-size:42px;text-align:center">💧</div>
+<h2 style="text-align:center">วันนี้น้ำยาเป็นอย่างไร?</h2>
+<div id="last" class="card" style="display:none"></div>
+<div class="grid">
+<button class="primary" onclick="startCheck()">📷 ตรวจน้ำยา PD</button>
+<button class="secondary" onclick="go('history')">🗂️ ประวัติการตรวจ</button>
+<button class="secondary" onclick="go('how')">👀 วิธีสังเกตน้ำยาที่ผิดปกติ</button>
+<button class="secondary" onclick="go('contact')">☎️ ติดต่อพยาบาล PD</button>
+</div>
+<div class="card"><b>สำคัญ</b><br>เครื่องมือนี้ช่วยคัดกรองเบื้องต้น ไม่สามารถวินิจฉัยเยื่อบุช่องท้องอักเสบได้ หากไม่สบายมาก ให้ติดต่อบุคลากรทางการแพทย์ทันที</div>
+</section>
+
+<section id="camera" class="screen">
+<h2>1) ถ่ายภาพน้ำยาที่ระบายออก</h2>
+<p class="sub">วางถุงในที่สว่าง ถ่ายให้เห็นน้ำยาชัด ใช้พื้นหลังขาวหรือวางเหนือตัวอักษรเพื่อดูความขุ่น</p>
+<label for="file" class="btn primary" style="margin:14px 0" tabindex="0">📷 เปิดกล้อง / เลือกรูปภาพ</label>
+<input id="file" type="file" accept="image/*" capture="environment">
+<img id="preview" class="photo" alt="ภาพน้ำยา">
+<div id="photoMsg" class="note">ถ่ายภาพไม่บังคับ แต่ช่วยให้พยาบาลดูประกอบได้</div>
+<h2 style="margin-top:22px">ลักษณะน้ำยาที่เห็น</h2>
+<div class="grid" id="appList" style="margin-top:8px"></div>
+<button class="primary" style="margin-top:18px" onclick="toSym()">ถัดไป: ประเมินอาการ</button>
+</section>
+
+<section id="symptoms" class="screen">
+<h2>2) มีอาการร่วมไหม?</h2><p class="sub">เลือกทุกข้อที่ตรงกับตอนนี้</p>
+<div class="grid" id="symList"></div>
+<button class="primary" id="goBtn" style="margin-top:18px" onclick="assess()">ดูผลการประเมิน</button>
+<p class="note" style="margin-top:12px">หากมีอาการรุนแรง ให้ติดต่อบุคลากรทางการแพทย์ทันที ไม่ต้องรอผลจากแอป</p>
+</section>
+
+<section id="result" class="screen">
+<h2>ผลการประเมินเบื้องต้น</h2>
+<div id="resultBox" class="result"></div>
+<div class="card"><b>เหตุผลที่ระบบพบ</b><ul id="why"></ul></div>
+<div class="card"><b>คำแนะนำ</b><div id="advice" style="line-height:1.7;margin-top:6px"></div></div>
+<a class="btn danger" id="callR" href="#" onclick="return doCall()">📞 โทรหาพยาบาล PD</a>
+<button class="secondary" style="margin-top:10px" onclick="sharePhoto()">📤 ส่งภาพให้พยาบาล</button>
+<button class="secondary" style="margin-top:10px" onclick="go('home')">กลับหน้าหลัก</button>
+</section>
+
+<section id="history" class="screen">
+<h2>🗂️ ประวัติการตรวจ</h2>
+<div id="hList"></div>
+<button class="secondary" id="clearBtn" onclick="clearAll()">ลบประวัติทั้งหมด</button>
+</section>
+
+<section id="how" class="screen">
+<h2>👀 วิธีสังเกตน้ำยา</h2>
+<div class="card"><h3><span class="dot green"></span>น้ำยาใส (ปกติ)</h3><p>ใสเหมือนน้ำ หรือเหลืองอ่อนใส มองผ่านถุงเห็นตัวอักษรได้ชัด</p></div>
+<div class="card"><h3><span class="dot yellow"></span>เฝ้าระวัง</h3><p>มีใยขาว/ไฟบริน หรือมีเลือดปน ควรแจ้งหน่วย PD ตามแนวทางของโรงพยาบาล</p></div>
+<div class="card"><h3><span class="dot red"></span>ติดต่อทันที</h3><p>น้ำยาขุ่น (แม้ยังไม่มีอาการ) หรือปวดท้องร่วมกับไข้ ควรติดต่อหน่วย PD ทันที เก็บถุงที่ผิดปกติไว้และไม่ทิ้ง</p></div>
+<button class="primary" onclick="go('home')">กลับหน้าหลัก</button>
+</section>
+
+<section id="contact" class="screen">
+<h2>☎️ ติดต่อพยาบาล PD</h2>
+<div class="card"><ul><li>เก็บถุงน้ำยาที่ผิดปกติไว้ตามคำแนะนำของหน่วย PD</li><li>อย่ารอให้อาการรุนแรงขึ้น</li><li>ติดต่อหน่วย PD ตามช่องทางที่โรงพยาบาลกำหนด</li></ul></div>
+<a class="btn danger" href="#" onclick="return doCall()">📞 โทรหาพยาบาล PD</a>
+<button class="secondary" style="margin-top:12px" onclick="sharePhoto()">📤 ส่งภาพให้พยาบาล</button>
+<div class="card" style="margin-top:18px"><b>ตั้งค่า</b>
+<div style="margin-top:8px"><label for="sName">ชื่อผู้ป่วย</label><input id="sName" type="text" placeholder="เช่น สมชาย ใจดี">
+<label for="sUnit">ชื่อหน่วย PD</label><input id="sUnit" type="text" placeholder="เช่น คลินิก PD โรงพยาบาล...">
+<label for="sTel">เบอร์โทรหน่วย PD / ฉุกเฉิน</label><input id="sTel" type="tel" inputmode="tel" placeholder="เช่น 035-xxx-xxx"></div>
+<button class="primary" onclick="saveSet()">บันทึกการตั้งค่า</button></div>
+</section>
+
+<footer>
+<button data-n="home" onclick="go('home')"><i>🏠</i>หน้าแรก</button>
+<button data-n="camera" onclick="startCheck()"><i>📷</i>ตรวจน้ำยา</button>
+<button data-n="history" onclick="go('history')"><i>🗂️</i>ประวัติ</button>
+<button data-n="contact" onclick="go('contact')"><i>☎️</i>ติดต่อ</button>
+</footer>
+</div>
+
+<script>
+const APP=[
+ {k:'clear',c:'#f4fbff',t:'ใส (ปกติ)'},
+ {k:'slight',c:'#e6e9d2',t:'ขุ่นเล็กน้อย / ฝ้า'},
+ {k:'cloudy',c:'#d9d6c6',t:'ขุ่นชัดเจน (เหมือนน้ำซาวข้าว)'},
+ {k:'fibrin',c:'#fffbe8',t:'มีใยขาว / ก้อนไฟบริน'},
+ {k:'blood',c:'#f2a3a3',t:'ชมพู / แดง (มีเลือดปน)'}];
+const SYM=[{k:'pain',e:'🤕',t:'ปวดท้องหรือกดเจ็บท้อง'},{k:'fever',e:'🌡️',t:'มีไข้หรือหนาวสั่น'},{k:'nausea',e:'🤢',t:'คลื่นไส้หรืออาเจียน'},{k:'exit',e:'🔴',t:'ตำแหน่งออกสายแดง บวม หรือมีหนอง'}];
+const NAME={};APP.forEach(a=>NAME[a.k]=a.t);SYM.forEach(s=>NAME[s.k]=s.t);
+const LV={red:['🔴','ควรติดต่อพยาบาล PD ทันที','ขุ่น/มีอาการที่ควรได้รับการประเมินโดยบุคลากรทางการแพทย์ อย่ารอ เก็บถุงน้ำยาไว้และไม่ทิ้ง ปฏิบัติตามคำแนะนำของหน่วย PD'],
+ yellow:['🟡','ควรเฝ้าระวังและแจ้งหน่วย PD','ตรวจซ้ำในการเปลี่ยนน้ำยาครั้งถัดไป แจ้งหน่วย PD ตามแนวทางของโรงพยาบาล หากอาการแย่ลงหรือน้ำยาขุ่น ให้ติดต่อทันที'],
+ green:['🟢','ยังไม่พบสัญญาณเตือนจากข้อมูลที่ตอบ','ปฏิบัติตามแผนการล้างไตตามปกติ สังเกตน้ำยาและอาการทุกครั้ง หากพบความผิดปกติภายหลังให้ตรวจใหม่และติดต่อหน่วย PD']};
+let cur={photo:null,app:null,sy:new Set(),res:null};
+const AI_URL=''; // ใส่ URL ของ Cloudflare Worker ที่นี่ (เว้นว่าง = ไม่ใช้ AI)
+const RK={green:0,yellow:1,red:2};
+const $=id=>document.getElementById(id);
+function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');
+ document.querySelectorAll('footer button').forEach(b=>b.classList.toggle('on',b.dataset.n===id));
+ if(id==='home')renderHome();if(id==='history')renderHist();if(id==='contact')loadSet();window.scrollTo(0,0)}
+function fmt(t){return new Date(t).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'})}
+function startCheck(){cur={photo:null,app:null,sy:new Set(),res:null};$('preview').style.display='none';$('photoMsg').textContent='ถ่ายภาพไม่บังคับ แต่ช่วยให้พยาบาลดูประกอบได้';drawChoices();go('camera')}
+function drawChoices(){
+ $('appList').innerHTML=APP.map(a=>`<button class="choice ${cur.app===a.k?'sel':''}" onclick="pickApp('${a.k}')"><span class="sw" style="background:${a.c}"></span><span>${a.t}</span></button>`).join('');
+ $('symList').innerHTML=SYM.map(s=>`<button class="choice ${cur.sy.has(s.k)?'sel':''}" onclick="pickSym('${s.k}')"><span class="e">${s.e}</span><span>${s.t}</span></button>`).join('')+
+ `<button class="choice ${cur.sy.size===0&&cur.none?'sel':''}" onclick="pickNone()"><span class="e">✅</span><span>ไม่มีอาการดังกล่าว</span></button>`}
+function pickApp(k){cur.app=k;drawChoices()}
+function pickSym(k){cur.none=false;cur.sy.has(k)?cur.sy.delete(k):cur.sy.add(k);drawChoices()}
+function pickNone(){cur.sy.clear();cur.none=true;drawChoices()}
+function toSym(){if(!cur.app){alert('กรุณาเลือกลักษณะน้ำยาที่เห็น');return}go('symptoms')}
+$('file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const im=new Image();
+ im.onload=()=>{const m=640,r=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*r;c.height=im.height*r;
+  c.getContext('2d').drawImage(im,0,0,c.width,c.height);cur.photo=c.toDataURL('image/jpeg',.6);
+  $('preview').src=cur.photo;$('preview').style.display='block';$('photoMsg').textContent='เลือกรูปแล้ว ตรวจว่าเห็นน้ำยาชัดเจน แล้วเลือกลักษณะน้ำยาด้านล่าง';URL.revokeObjectURL(im.src)};
+ im.src=URL.createObjectURL(f)});
+function level(app,sy){const why=[];let lv='green';
+ const up=(l)=>{if(l==='red'||(l==='yellow'&&lv==='green'))lv=l};
+ if(app==='cloudy'||app==='slight'){up('red');why.push('น้ำยาขุ่น ต้องได้รับการประเมินจากหน่วย PD แม้ยังไม่มีอาการ')}
+ if(sy.has('pain')&&sy.has('fever')){up('red');why.push('ปวดท้องร่วมกับไข้/หนาวสั่น')}
+ if(app==='fibrin'){up('yellow');why.push('พบใยขาว/ไฟบริน')}
+ if(app==='blood'){up('yellow');why.push('น้ำยามีเลือดปน')}
+ ['pain','fever','nausea','exit'].forEach(k=>{if(sy.has(k)){up('yellow');why.push(NAME[k])}});
+ if(!why.length)why.push('น้ำยาใสและไม่มีอาการที่เลือก');return{lv,why}}
+async function askAI(){if(!AI_URL||!cur.photo)return null;
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);
+ try{const r=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:cur.photo}),signal:c.signal});
+  if(!r.ok)throw 0;return await r.json()}catch(e){return{error:1}}finally{clearTimeout(t)}}
+async function assess(){const b=$('goBtn'),o=b.textContent;b.disabled=true;
+ if(AI_URL&&cur.photo)b.textContent='AI กำลังตรวจภาพ...';
+ const ai=await askAI();b.disabled=false;b.textContent=o;
+ let r=level(cur.app,cur.sy);
+ if(ai){
+  if(ai.error)r.why.push('ตรวจด้วย AI ไม่สำเร็จ ใช้ผลจากที่เลือกเอง');
+  else if(ai.appearance==='unclear')r.why.push('AI อ่านภาพไม่ชัด ลองถ่ายใหม่ในที่สว่าง (ใช้ผลจากที่เลือกเอง)');
+  else if(NAME[ai.appearance]){const a=level(ai.appearance,cur.sy);
+   if(ai.appearance!==cur.app&&RK[a.lv]>RK[r.lv])r={lv:a.lv,why:['AI เห็นจากภาพ: '+NAME[ai.appearance]+' (ต่างจากที่เลือก)'].concat(a.why)};
+   else if(ai.appearance!==cur.app)r.why.push('AI เห็นจากภาพ: '+NAME[ai.appearance]);
+   if(ai.note)r.why.push('AI: '+String(ai.note).slice(0,200))}}
+ cur.res=r;const L=LV[r.lv];
+ $('resultBox').className='result '+r.lv;$('resultBox').innerHTML=`<div style="font-size:46px">${L[0]}</div><h2>${L[1]}</h2>`;
+ $('why').innerHTML=r.why.map(w=>`<li>${esc(w)}</li>`).join('');$('advice').textContent=L[2]+(ai&&!ai.error&&ai.appearance&&ai.appearance!=='unclear'?' (AI ช่วยดูภาพเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัย)':'');
+ const rec={t:Date.now(),app:cur.app,sy:[...cur.sy],lv:r.lv,photo:cur.photo};
+ const h=ld('pdva_hist',[]);h.unshift(rec);h.length=Math.min(h.length,30);
+ if(!sv('pdva_hist',h)){h.forEach((x,i)=>{if(i>3)x.photo=null});sv('pdva_hist',h)}
+ go('result')}
+function renderHome(){const h=ld('pdva_hist',[]),b=$('last');
+ if(!h.length){b.style.display='none';return}const x=h[0];b.style.display='block';
+ b.innerHTML=`<b>การตรวจล่าสุด</b><div style="margin-top:6px"><span class="dot ${x.lv}"></span>${LV[x.lv][1]}<div class="note">${fmt(x.t)}</div></div>`}
+function renderHist(){const h=ld('pdva_hist',[]);
+ $('clearBtn').style.display=h.length?'block':'none';
+ $('hList').innerHTML=h.length?h.map((x,i)=>`<div class="card hi">${x.photo?`<img src="${x.photo}" alt="">`:'<div class="ph">💧</div>'}<div><div><span class="dot ${x.lv}"></span><b>${LV[x.lv][1]}</b></div><div class="note">${fmt(x.t)}<br>${esc(NAME[x.app]||'')}${x.sy.length?' • '+esc(x.sy.map(k=>NAME[k]).join(', ')):''}</div></div><button class="x" onclick="delOne(${i})" aria-label="ลบ">ลบ</button></div>`).join(''):'<p class="sub">ยังไม่มีประวัติ กด "ตรวจน้ำยา PD" เพื่อเริ่มบันทึก</p>'}
+function delOne(i){const h=ld('pdva_hist',[]);h.splice(i,1);sv('pdva_hist',h);renderHist()}
+function clearAll(){if(confirm('ลบประวัติทั้งหมด?')){sv('pdva_hist',[]);renderHist()}}
+function loadSet(){const s=ld('pdva_set',{});$('sName').value=s.name||'';$('sUnit').value=s.unit||'';$('sTel').value=s.tel||''}
+function saveSet(){sv('pdva_set',{name:$('sName').value.trim(),unit:$('sUnit').value.trim(),tel:$('sTel').value.trim()});alert('บันทึกแล้ว')}
+function doCall(){const s=ld('pdva_set',{}),t=(s.tel||'').replace(/[^0-9+]/g,'');
+ if(!t){alert('ยังไม่ได้ตั้งเบอร์โทร กรุณากรอกเบอร์หน่วย PD ในหน้าติดต่อ (ส่วนตั้งค่า) ก่อน');go('contact');return false}
+ location.href='tel:'+t;return false}
+async function sharePhoto(){const s=ld('pdva_set',{}),h=ld('pdva_hist',[]),x=h[0];
+ if(!x||!x.photo){alert('ยังไม่มีภาพล่าสุด กรุณาตรวจน้ำยาพร้อมถ่ายภาพก่อน');return}
+ const txt=`${s.name||'ผู้ป่วย PD'} ส่งภาพน้ำยา (${fmt(x.t)})\nลักษณะ: ${NAME[x.app]}\nอาการ: ${x.sy.length?x.sy.map(k=>NAME[k]).join(', '):'ไม่มี'}`;
+ try{const b=await (await fetch(x.photo)).blob(),f=new File([b],'pd-effluent.jpg',{type:'image/jpeg'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:txt});return}
+  if(navigator.share){await navigator.share({text:txt});alert('ส่งข้อความแล้ว กรุณาแนบภาพจากหน้าประวัติเพิ่ม');return}}catch(e){if(e&&e.name==='AbortError')return}
+ alert('อุปกรณ์นี้ไม่รองรับการแชร์โดยตรง กรุณาบันทึกภาพหน้าจอ แล้วส่งให้พยาบาลทาง LINE หรือช่องทางที่หน่วย PD กำหนด')}
+renderHome();
+</script>
+</body>
+</html>
